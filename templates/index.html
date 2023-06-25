@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Camping Psalms</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <style>
+    #searchResults.dropdown-menu {
+      margin-top: 0;
+    }
+    .song-panel {
+      margin-top: 20px;
+    }
+    .lyrics {
+      white-space: pre-wrap;
+    }
+    #sidebar {
+      position: fixed;
+      top: 0;
+      right: -40%;
+      width: 40%;
+      height: 100%;
+      background-color: #f8f9fa;
+      border-left: 1px solid #ccc;
+      padding: 20px;
+      transition: right 0.3s ease-in-out;
+    }
+    #sidebar.active {
+      right: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <form class="form-inline my-2 my-lg-0">
+        <div class="form-group position-relative">
+          <input type="text" class="form-control mr-sm-2" type="search" id="searchInput" placeholder="Пошук..">
+          <div id="searchResults" class="dropdown-menu" aria-labelledby="searchInput">
+          </div>
+        </div>
+      </form>
+
+      <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
+      </ul>
+
+      <button id="settingsButton" class="btn btn-outline-success my-2 my-sm-0">
+        <i class="fas fa-cog"></i>
+      </button>
+    </nav>    
+    
+    <div id="sidebar">
+      <h4>Налаштування</h4>
+      <hr>
+      <div class="form-group">
+        <div class="custom-control custom-checkbox">
+          <input type="checkbox" class="custom-control-input" id="hideAccordsCheckbox" checked>
+          <label class="custom-control-label" for="hideAccordsCheckbox">Приховати акорди</label>
+        </div>
+      </div>
+    </div>
+
+    <div id="songPanel" class="song-panel">
+      <h2 id="songTitle"></h2>
+      <div id="lyrics" class="lyrics"></div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      var settingsButton = $('#settingsButton');
+      var sidebar = $('#sidebar');
+      var isSidebarActive = false;
+
+      function loadLyrics(id, hideAccords, then) {
+        $.get('/records/' + id, { hideAccords }, function(data) {
+          var song = data;
+
+          $('#songTitle').text(song.title);
+          $('#lyrics').html(song.lyrics);
+          
+          $('#songPanel').data('id', id);
+          $('#songPanel').show();
+
+          if (then) {
+            then();
+          }
+        });
+      }
+
+      // Toggle the sidebar
+      settingsButton.click(function(e) {
+        e.stopPropagation(); // Prevent event propagation
+        isSidebarActive = !isSidebarActive;
+        sidebar.toggleClass('active', isSidebarActive);
+      });
+
+      // Handle the hide accords checkbox change event
+      $('#hideAccordsCheckbox').change(function() {
+        var id = $('#songPanel').data('id');       
+        var hideAccords = $(this).prop('checked');
+        
+        if (id) {
+          loadLyrics(id, hideAccords);
+        }
+      });
+
+      // Close the sidebar when clicking or tapping outside of it
+      $(document).on('click touchstart', function(event) {
+        if (!settingsButton.is(event.target) && !sidebar.is(event.target) && sidebar.has(event.target).length === 0 && isSidebarActive) {
+          isSidebarActive = false;
+          sidebar.removeClass('active');
+        }
+      });
+
+      // Autocomplete search functionality
+      var searchInput = $('#searchInput');
+      var searchResults = $('#searchResults');
+
+      searchInput.on('input', function() {
+        var query = $(this).val();
+
+        if (query.length >= 4) {          
+          $.get('/autocompletion', { search: query }, function(data) {
+            var results = data;
+
+            searchResults.empty();
+
+            if (results.length > 0) {
+              results.forEach(function(result) {
+                var item = $('<a class="dropdown-item" href="#"></a>');
+                item.text(result.title);
+                item.data('id', result.id);
+                searchResults.append(item);
+              });
+              searchResults.addClass('show');
+            } else {
+              searchResults.removeClass('show');
+            }
+          });
+        } else {
+          searchResults.removeClass('show');
+        }
+      });
+
+      // Handle dropdown item click
+      searchResults.on('click', '.dropdown-item', function() {
+        var id = $(this).data('id');
+        var hideAccords = $("#hideAccordsCheckbox").is(':checked');
+
+        loadLyrics(id, hideAccords, function() {
+          // Hide dropdown and clear search input
+          searchResults.removeClass('show');
+          searchInput.val('');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
