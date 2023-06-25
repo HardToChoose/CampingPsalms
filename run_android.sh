@@ -1,5 +1,6 @@
-python -m venv camps_env
-./camps_env/bin/activate
+python -m venv __venv__
+chmod +x ./__venv__/bin/activate
+./__venv__/bin/activate
 python -m pip install flask
 export FLASK_ENV="production"
 export FLASK_APP="app.py"
