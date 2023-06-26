@@ -7,7 +7,7 @@ PORT=5000
 
 python -m pip install qrcode | grep -v 'already satisfied'
 python -m pip install ifcfg | grep -v 'already satisfied'
-python hotspot_qr.py  $PORT
+python hotspot_qr.py "$IFACE" $PORT
 
 if [[ $? -gt 0 ]]
 then
