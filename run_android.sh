@@ -11,7 +11,7 @@ python hotspot_qr.py "$IFACE" $PORT
 
 if [[ $? -gt 0 ]]
 then
-    echo 'Hotspot interface "$IFACE" was not found'
+    echo "Hotspot interface '$IFACE' was not found"
 else
     python -m pip install flask | grep -v 'already satisfied'
     export FLASK_ENV='production'
