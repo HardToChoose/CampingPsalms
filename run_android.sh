@@ -3,7 +3,7 @@ chmod +x ./__venv__/bin/activate
 ./__venv__/bin/activate
 
 PORT=5000
-python -m pip install qrcodeT
+python -m pip install qrcode
 python -m pip install ifcfg
 python hotspot_qr.py wlan2 $PORT
 
