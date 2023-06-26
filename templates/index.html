@@ -3,9 +3,9 @@
 <head>
   <title>Camping Psalms</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <style>
     #searchResults.dropdown-menu {
       margin-top: 0;
@@ -37,37 +37,36 @@
   </style>
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <div class="d-flex justify-content-between align-items-center w-100">
-      <form class="form-inline needs-validation my-2 my-lg-0">
+    <div class="container-fluid d-flex justify-content-between align-items-top navbar-light bg-light">
+      <form class="form-inline needs-validation my-2">
         
         <div class="d-flex position-relative has-validation">
           <input type="search" class="form-control rounded" type="search" id="searchInput" autocomplete="off" placeholder="Пошук..">
-          <div id="searchResults" class="dropdown-menu" aria-labelledby="searchInput">
-          </div>
           <button type="button" class="btn btn-outline-primary" id="searchButton">
             <i class="fas fa-search"></i>
           </button>
-        </div>        
+        </div>
+
+        <div id="searchResults" class="dropdown-menu" aria-labelledby="searchInput">
+        </div>
         <div id="searchInputError" class="invalid-feedback">
         </div>
         
       </form>
 
-      <div class="ml-auto">
+      <div class="ml-auto my-2">
         <button id="settingsButton" class="btn btn-outline-success">
           <i class="fas fa-cog"></i>
         </button>
       </div>
     </div>
-  </nav>
 
   <div class="container-fluid">    
     <div id="sidebar">
       <div class="d-flex justify-content-between align-items-center">
         <h5>Налаштування</h5>
         <button id="hideSettingsButton" class="btn">
-          <i class="fa fa-close"></i>
+          <span class="material-symbols-outlined">close</span>
         </button>
       </div>
       <hr>
@@ -127,9 +126,9 @@
         const minWords = 3;
         var query = $('#searchInput').val();
 
-        var words = query.split(' ');
+        var words = query.split(' ').filter(_ => _);
         if (words.length < minWords) {
-          showValidationError(`Введіть щонайменше ${minWords} слова для пошуку по тексту пісні`);
+          showValidationError(`Введіть не менше ${minWords} слів для пошуку по тексту пісні`);
           return;
         }
 
@@ -194,9 +193,13 @@
         const minLength = 4;
         
         var query = $('#searchInput').val();
+        if (query == '') {
+          return;
+        }
+        
         if (query.length < minLength) {
           searchResults.removeClass('show');
-          showValidationError(`Введіть щонайменше ${minLength} символів`);
+          showValidationError(`Введіть не менше ${minLength} символів`);
           
           return;
         }
