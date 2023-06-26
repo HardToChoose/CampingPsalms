@@ -8,8 +8,8 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
-@app.route('/records/<id>', methods=['GET'])
-def get_record(id):
+@app.route('/songs/<id>', methods=['GET'])
+def get_song(id):
     if id:
         connection = sqlite3.connect(database)
         cursor = connection.cursor()
@@ -30,14 +30,31 @@ def get_record(id):
 
     return jsonify({'id': id, 'title': title, 'lyrics': lyrics})
 
-@app.route('/autocompletion', methods=['GET'])
-def autocompletion():
-    match_expr = build_match_expr(request.args.get('search'))
+@app.route('/songs', methods=['GET'])
+def search_songs_by_lyrics():
+    match_expr = build_match_expr(request.args.get('lyricsSearch'))
+    hide_accords = request.args.get('hideAccords') == 'true'
 
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT SongId, Title FROM SongsFTI WHERE Title MATCH ? ORDER BY rank DESC, Title ASC", (match_expr,))
+    cursor.execute("SELECT SongId, Title, Lyrics FROM SongsFTI WHERE Lyrics MATCH ? ORDER BY Title ASC", (match_expr,))
+    rows = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    results = [{'id': row[0], 'title': row[1], 'lyrics': remove_accords(row[2]) if hide_accords else row[2]} for row in rows]
+    return jsonify(results)
+
+@app.route('/autocompletion', methods=['GET'])
+def autocompletion():
+    match_expr = build_match_expr(request.args.get('titleSearch'))
+
+    conn = sqlite3.connect(database)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT SongId, Title FROM SongsFTI WHERE Title MATCH ? ORDER BY Title ASC", (match_expr,))
     rows = cursor.fetchall()
 
     cursor.close()

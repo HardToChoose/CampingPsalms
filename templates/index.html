@@ -10,8 +10,11 @@
     #searchResults.dropdown-menu {
       margin-top: 0;
     }
-    .song-panel {
+    #songs {
       margin-top: 20px;
+    }
+    .song-title {
+      cursor: pointer;
     }
     .lyrics {
       white-space: pre-wrap;
@@ -19,13 +22,14 @@
     #sidebar {
       position: fixed;
       top: 0;
-      right: -70%;
-      width: 70%;
+      right: -75%;
+      width: 75%;
       height: 100%;
       background-color: #f8f9fa;
       border-left: 1px solid #ccc;
       padding: 20px;
       transition: right 0.3s ease-in-out;
+      z-index: 2147483647;
     }
     #sidebar.active {
       right: 0;
@@ -35,12 +39,19 @@
 <body>
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="d-flex justify-content-between align-items-center w-100">
-      <form class="form-inline my-2 my-lg-0">
-        <div class="position-relative">
-          <input type="text" class="form-control" type="search" id="searchInput" placeholder="Пошук..">
+      <form class="form-inline needs-validation my-2 my-lg-0">
+        
+        <div class="d-flex position-relative has-validation">
+          <input type="search" class="form-control rounded" type="search" id="searchInput" autocomplete="off" placeholder="Пошук..">
           <div id="searchResults" class="dropdown-menu" aria-labelledby="searchInput">
           </div>
+          <button type="button" class="btn btn-outline-primary" id="searchButton">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>        
+        <div id="searchInputError" class="invalid-feedback">
         </div>
+        
       </form>
 
       <div class="ml-auto">
@@ -53,8 +64,8 @@
 
   <div class="container-fluid">    
     <div id="sidebar">
-      <div class="d-flex justify-content-between">
-        <h4>Налаштування</h4>
+      <div class="d-flex justify-content-between align-items-center">
+        <h5>Налаштування</h5>
         <button id="hideSettingsButton" class="btn">
           <i class="fa fa-close"></i>
         </button>
@@ -68,9 +79,7 @@
       </div>
     </div>
 
-    <div id="songPanel" class="song-panel">
-      <h2 id="songTitle"></h2>
-      <div id="lyrics" class="lyrics"></div>
+    <div id="songs" class="accordion">
     </div>
   </div>
 
@@ -78,28 +87,64 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
   <script>
     $(document).ready(function() {
+      var searchButton = $('#searchButton');
       var settingsButton = $('#settingsButton');
       var hideSettingsButton = $('#hideSettingsButton');
       var sidebar = $('#sidebar');
       var isSidebarActive = false;
 
-      function loadLyrics(id, hideAccords, then) {
-        $.get('/records/' + id, { hideAccords }, function(data) {
-          var song = data;
-
-          $('#songTitle').text(song.title);
-          $('#lyrics').html(song.lyrics);
-          
-          $('#songPanel').data('id', id);
-          $('#songPanel').show();
-
-          if (then) {
-            then();
-          }
-        });
+      function showValidationError(error) {
+        $('#searchInputError').text(error)
+        $('#searchInputError').show()
       }
 
-      // Toggle the sidebar
+      function addSong(isCollapsed, song) {
+        var songPanel = $(`\
+<div id="song${song.id}" class="song-panel card"> \
+  <h5 id="songTitle${song.id}" \
+    class="song-title card-header ${isCollapsed ? 'collapsed' : ''}" \
+    data-toggle="collapse" \
+    data-target="#songLyrics${song.id}" \
+    aria-expanded="${!isCollapsed}" \
+    aria-controls="song${song.id}"> \
+    ${song.title} \
+  </h5> \
+  <div id="songLyrics${song.id}" \
+    class="lyrics card-body collapse ${isCollapsed ? '' : 'show'} \
+    aria-labelledby="songTitle${song.id}" \
+    data-parent="#songs" \
+    "> \
+    ${song.lyrics} \
+  </div> \
+</div> \
+      `);
+
+        songPanel.data('id', song.id);
+        $("#songs").append(songPanel);
+      }
+
+      searchButton.click(function(e) {
+        const minWords = 3;
+        var query = $('#searchInput').val();
+
+        var words = query.split(' ');
+        if (words.length < minWords) {
+          showValidationError(`Введіть щонайменше ${minWords} слова для пошуку по тексту пісні`);
+          return;
+        }
+
+        $("#songs").empty();
+        var hideAccords = $('#hideAccordsCheckbox').prop('checked');
+
+        $.get('/songs', { lyricsSearch: query, hideAccords }, function(data) {
+            $('#searchResults').removeClass('show');
+
+            for (let song of data) {
+              addSong(true, song);
+            }
+          });
+      });
+
       settingsButton.click(function(e) {
         e.stopPropagation(); // Prevent event propagation
         isSidebarActive = !isSidebarActive;
@@ -112,13 +157,20 @@
         sidebar.toggleClass('active', isSidebarActive);
       });
 
+      function reloadSong(id, hideAccords) {
+        $.get('/songs/' + id, { hideAccords }, function(data) {
+            $(`#songTitle${id}`).html(data.title);
+            $(`#songLyrics${id}`).html(data.lyrics);
+          });
+      }
+
       // Handle the hide accords checkbox change event
       $('#hideAccordsCheckbox').change(function() {
-        var id = $('#songPanel').data('id');       
-        var hideAccords = $(this).prop('checked');
+        var hideAccords = $('#hideAccordsCheckbox').prop('checked');
         
-        if (id) {
-          loadLyrics(id, hideAccords);
+        for (let song of $('.song-panel')) {
+          var id = $(song).data('id');
+          reloadSong(id, hideAccords);
         }
       });
 
@@ -135,13 +187,21 @@
       var searchInput = $('#searchInput');
       var searchResults = $('#searchResults');
 
-      searchInput.on('input', function() {
-        var query = $(this).val();
+      let autocomletionTimerId;
+      const delay = 1000;
 
-        if (query.length >= 4) {          
-          $.get('/autocompletion', { search: query }, function(data) {
-            var results = data;
+      function showAutocompletionOptions() {
+        const minLength = 4;
+        
+        var query = $('#searchInput').val();
+        if (query.length < minLength) {
+          searchResults.removeClass('show');
+          showValidationError(`Введіть щонайменше ${minLength} символів`);
+          
+          return;
+        }
 
+        $.get('/autocompletion', { titleSearch: query }, function(results) {
             searchResults.empty();
 
             if (results.length > 0) {
@@ -149,6 +209,7 @@
                 var item = $('<a class="dropdown-item" href="#"></a>');
                 item.text(result.title);
                 item.data('id', result.id);
+                
                 searchResults.append(item);
               });
               searchResults.addClass('show');
@@ -156,9 +217,15 @@
               searchResults.removeClass('show');
             }
           });
-        } else {
-          searchResults.removeClass('show');
-        }
+      }
+
+      searchInput.on('input', function() {
+        $('#searchInputError').hide();
+
+        clearTimeout(autocomletionTimerId);
+        autocomletionTimerId = setTimeout(() => {
+          showAutocompletionOptions();
+        }, delay);
       });
 
       // Handle dropdown item click
@@ -166,10 +233,11 @@
         var id = $(this).data('id');
         var hideAccords = $("#hideAccordsCheckbox").is(':checked');
 
-        loadLyrics(id, hideAccords, function() {
-          // Hide dropdown and clear search input
+        $("#songs").empty();
+
+        $.get('/songs/' + id, { hideAccords }, function(data) {
+          addSong(false, data);
           searchResults.removeClass('show');
-          searchInput.val('');
         });
       });
     });
