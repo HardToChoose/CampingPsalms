@@ -34,22 +34,24 @@
 </head>
 <body>
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <form class="form-inline my-2 my-lg-0">
-      <div class="form-group position-relative">
-        <input type="text" class="form-control mr-sm-2" type="search" id="searchInput" placeholder="Пошук..">
-        <div id="searchResults" class="dropdown-menu" aria-labelledby="searchInput">
+    <div class="d-flex justify-content-between align-items-center w-100">
+      <form class="form-inline my-2 my-lg-0">
+        <div class="position-relative">
+          <input type="text" class="form-control" type="search" id="searchInput" placeholder="Пошук..">
+          <div id="searchResults" class="dropdown-menu" aria-labelledby="searchInput">
+          </div>
         </div>
+      </form>
+
+      <div class="ml-auto">
+        <button id="settingsButton" class="btn btn-outline-success">
+          <i class="fas fa-cog"></i>
+        </button>
       </div>
-    </form>
-
-    <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
-    </ul>
-
-    <button id="settingsButton" class="btn btn-outline-success">
-      <i class="fas fa-cog"></i>
-    </button>
+    </div>
   </nav>
-  <div class="container">    
+
+  <div class="container-fluid">    
     <div id="sidebar">
       <div class="d-flex justify-content-between">
         <h4>Налаштування</h4>
@@ -160,7 +162,7 @@
       });
 
       // Handle dropdown item click
-      searchResults.on('click', '.dropdown-item', function() {
+      searchResults.on('click touchstart', '.dropdown-item', function() {
         var id = $(this).data('id');
         var hideAccords = $("#hideAccordsCheckbox").is(':checked');
 
