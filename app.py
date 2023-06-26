@@ -32,24 +32,29 @@ def get_record(id):
 
 @app.route('/autocompletion', methods=['GET'])
 def autocompletion():
-    query = request.args.get('search')
+    match_expr = build_match_expr(request.args.get('search'))
 
-    # Connect to the SQLite database
     conn = sqlite3.connect(database)
     cursor = conn.cursor()
 
-    # Perform the autocomplete query
-    cursor.execute("SELECT Id, Title FROM Songs WHERE UPPER(Title) LIKE UPPER(?)", ('%' + query + '%',))
+    cursor.execute("SELECT SongId, Title FROM SongsFTI WHERE Title MATCH ? ORDER BY rank DESC, Title ASC", (match_expr,))
     rows = cursor.fetchall()
 
-    # Close the cursor and the connection
     cursor.close()
     conn.close()
 
-    # Extract the Title and Url values from the rows
     results = [{'id': row[0], 'title': row[1]} for row in rows]
-
     return jsonify(results)
+
+def build_match_expr(search):
+    words = search \
+        .strip() \
+        .replace('\t', ' ') \
+        .replace('"', '') \
+        .replace("'", '') \
+        .split(' ')
+    
+    return ' '.join(word + '*' for word in words)
    
 def remove_accords(lyrics):
     notes = set(chr(n) for n in range(ord('A'), ord('H') + 1))
