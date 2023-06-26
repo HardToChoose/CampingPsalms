@@ -13,6 +13,6 @@ for name, interface in ifcfg.interfaces().items():
         qr = qrcode.QRCode()
         qr.add_data(url)
         qr.print_ascii()
-        break
-else:
-    print('Hotspot WLAN interface was no found')
+        exit(0)
+
+exit(1)
